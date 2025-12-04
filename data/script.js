@@ -40,6 +40,18 @@ function onMessage(event) {
     try {
         var data = JSON.parse(event.data);
         // Có thể thêm xử lý riêng nếu cần (ví dụ cập nhật trạng thái)
+
+        // ==================================================
+        // Kiểm tra xem có phải dữ liệu cảm biến không
+        if (data.type === "sensor_data") {
+            // Cập nhật đồng hồ đo với giá trị thật
+            // (Kiểm tra xem gaugeTemp và gaugeHumi đã được khởi tạo chưa)
+            if (window.gaugeTemp && window.gaugeHumi) {
+                window.gaugeTemp.refresh(data.temperature);
+                window.gaugeHumi.refresh(data.humidity);
+            }
+        }
+        // ==================================================
     } catch (e) {
         console.warn("Không phải JSON hợp lệ:", event.data);
     }
@@ -60,9 +72,11 @@ function showSection(id, event) {
 
 // ==================== HOME GAUGES ====================
 window.onload = function () {
-    const gaugeTemp = new JustGage({
+    // Khởi tạo 2 đồng hồ đo và lưu vào biến toàn cục (window.)
+    // để các hàm khác có thể truy cập
+    window.gaugeTemp = new JustGage({
         id: "gauge_temp",
-        value: 26,
+        value: 0, // Giá trị ban đầu
         min: -10,
         max: 50,
         donut: true,
@@ -73,9 +87,9 @@ window.onload = function () {
         levelColors: ["#00BCD4", "#4CAF50", "#FFC107", "#F44336"]
     });
 
-    const gaugeHumi = new JustGage({
+    window.gaugeHumi = new JustGage({
         id: "gauge_humi",
-        value: 60,
+        value: 0, // Giá trị ban đầu
         min: 0,
         max: 100,
         donut: true,
@@ -86,10 +100,10 @@ window.onload = function () {
         levelColors: ["#42A5F5", "#00BCD4", "#0288D1"]
     });
 
-    setInterval(() => {
-        gaugeTemp.refresh(Math.floor(Math.random() * 15) + 20);
-        gaugeHumi.refresh(Math.floor(Math.random() * 40) + 40);
-    }, 3000);
+    // setInterval(() => {
+    //     gaugeTemp.refresh(Math.floor(Math.random() * 15) + 20);
+    //     gaugeHumi.refresh(Math.floor(Math.random() * 40) + 40);
+    // }, 3000);
 };
 
 

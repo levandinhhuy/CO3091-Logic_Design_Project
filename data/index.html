@@ -25,11 +25,10 @@
         alt="Logo">
     </div>
 
-    <div class="nav-item active" onclick="showSection('home', event)">🏠 <span>Trang chủ</span></div>
-    <div class="nav-item" onclick="showSection('device', event)">⚡ <span>Thiết bị</span></div>
-    <div class="nav-item" onclick="showSection('info', event)">ℹ️ <span>Thông tin</span></div>
-    <div class="nav-item" onclick="showSection('settings', event)">⚙️ <span>Cài đặt</span></div>
-  </div>
+<div class="nav-item active" onclick="showSection('home', event)"><i class="fa-solid fa-house"></i> <span>Trang chủ</span></div>
+    <div class="nav-item" onclick="showSection('device', event)"><i class="fa-solid fa-bolt"></i> <span>Thiết bị</span></div>
+    <div class="nav-item" onclick="showSection('info', event)"><i class="fa-solid fa-circle-info"></i> <span>Thông tin</span></div>
+    <div class="nav-item" onclick="showSection('settings', event)"><i class="fa-solid fa-gear"></i> <span>Cài đặt</span></div>  </div>
 
   <!-- Nội dung chính -->
   <div class="main-content">
@@ -41,14 +40,14 @@
         <p>Giám sát nhiệt độ và độ ẩm theo thời gian thực</p>
       </header>
 
-      <div class="gauges-container">
+<div class="gauges-container">
         <div class="gauge-card">
-          <h2>🌡️ Nhiệt độ (°C)</h2>
+          <h2><i class="fa-solid fa-temperature-half"></i> Nhiệt độ (°C)</h2>
           <div id="gauge_temp"></div>
         </div>
 
         <div class="gauge-card">
-          <h2>💧 Độ ẩm (%)</h2>
+          <h2><i class="fa-solid fa-droplet"></i> Độ ẩm (%)</h2>
           <div id="gauge_humi"></div>
         </div>
       </div>
@@ -135,9 +134,9 @@
   </div>
 
   <!-- HỘP THOẠI XÓA -->
-  <div id="confirmDeleteDialog" class="dialog-overlay" style="display:none;">
+<div id="confirmDeleteDialog" class="dialog-overlay" style="display:none;">
     <div class="dialog warning fade-in">
-      <h3>⚠️ Xác nhận xóa</h3>
+      <h3><i class="fa-solid fa-triangle-exclamation"></i> Xác nhận xóa</h3>
       <p>Bạn có chắc chắn muốn xóa relay này không?</p>
       <div class="dialog-buttons">
         <button class="danger" onclick="confirmDelete()">Xóa</button>
