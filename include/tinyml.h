@@ -14,5 +14,6 @@
 #include "tensorflow/lite/schema/schema_generated.h"
 
 void setupTinyML();
-void run_inference(uint8_t *image_data, size_t image_len);
+void tiny_ml_task(void *pvParameters);
+
 #endif

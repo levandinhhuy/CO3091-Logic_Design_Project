@@ -8,7 +8,6 @@
 
 extern float glob_temperature;
 extern float glob_humidity;
-extern String glob_light_level;
 
 extern String WIFI_SSID;
 extern String WIFI_PASS;
@@ -18,5 +17,4 @@ extern String CORE_IOT_PORT;
 
 extern boolean isWifiConnected;
 extern SemaphoreHandle_t xBinarySemaphoreInternet;
-extern uint16_t* gpImage;
 #endif
