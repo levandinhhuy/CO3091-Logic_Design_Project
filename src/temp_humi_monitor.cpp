@@ -23,8 +23,6 @@ void temp_humi_monitor(void *pvParameters){
         float temperature = dht20.getTemperature();
         // Reading humidity
         float humidity = dht20.getHumidity();
-        // // Read light sensor value
-        // int lightValue = analogRead(LIGHT_ANALOG_PIN);
 
         // Check if any reads failed and exit early
         if (isnan(temperature) || isnan(humidity)) {
@@ -33,25 +31,11 @@ void temp_humi_monitor(void *pvParameters){
             //return;
         }
 
-        // // Determine light level
-        // String lightLevel;
-        // if(lightValue <= 1200) lightLevel = "Bright";
-        // else if(lightValue <= 3200) lightLevel = "Medium";
-        // else lightLevel = "Dark";
-
         //Update global variables for temperature and humidity and light level
         glob_temperature = temperature;
         glob_humidity = humidity;
-        // glob_light_level = lightLevel;
-        
-        // Serial output
-        // Serial.print("Light analog: ");
-        // Serial.print(lightValue);
-        // Serial.print(" -> ");
-        // Serial.println(lightLevel);
 
-        // LCD display
-        
+        // LCD display        
         Serial.print("Humidity: ");
         Serial.print(humidity);
         Serial.print("%  Temperature: ");
@@ -96,7 +80,4 @@ void draw(){
     char humi_str[20];
     sprintf(humi_str, "Humi: %.2f %%", glob_humidity);
     u8g2.drawStr(0,30,humi_str);
-    // char light_str[20];
-    // sprintf(light_str, "Light: %s", glob_light_level.c_str());
-    // u8g2.drawStr(0,50,light_str);
 }
