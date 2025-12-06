@@ -1,6 +1,6 @@
 #include "global.h"
-float glob_temperature = 40;
-float glob_humidity = 50;
+float glob_temperature = 25.0;
+float glob_humidity = 0.50;
 
 String WIFI_SSID;
 String WIFI_PASS;

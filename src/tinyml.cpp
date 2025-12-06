@@ -1,6 +1,5 @@
 #include "tinyml.h"
 
-// Globals, for the convenience of one-shot setup.
 namespace
 {
     tflite::ErrorReporter *error_reporter = nullptr;
@@ -8,9 +7,16 @@ namespace
     tflite::MicroInterpreter *interpreter = nullptr;
     TfLiteTensor *input = nullptr;
     TfLiteTensor *output = nullptr;
-    constexpr int kTensorArenaSize = 8 * 1024; // Adjust size based on your model
+    constexpr int kTensorArenaSize = 32 * 1024; 
     uint8_t tensor_arena[kTensorArenaSize];
-} // namespace
+    
+    // StandardScaler parameters from Python training
+    // Extract from: scaler.mean_ and scaler.scale_ (which is 1/std)
+    const float TEMP_MEAN = 29.95f;
+    const float TEMP_STD = 10.02f;
+    const float HUMID_MEAN = 0.6234f;
+    const float HUMID_STD = 0.1447f;
+}
 
 void setupTinyML()
 {
@@ -18,7 +24,7 @@ void setupTinyML()
     static tflite::MicroErrorReporter micro_error_reporter;
     error_reporter = &micro_error_reporter;
 
-    model = tflite::GetModel(dht_anomaly_model_tflite); // g_model_data is from model_data.h
+    model = tflite::GetModel(dht_anomaly_model_tflite); 
     if (model->version() != TFLITE_SCHEMA_VERSION)
     {
         error_reporter->Report("Model provided is schema version %d, not equal to supported version %d.",
@@ -41,7 +47,27 @@ void setupTinyML()
     input = interpreter->input(0);
     output = interpreter->output(0);
 
-    Serial.println("TensorFlow Lite Micro initialized on ESP32.");
+    // Debug tensor info - DETAILED
+    Serial.println("\n=== TFLite Model Info ===");
+    Serial.printf("Input dims: %d, type: %d (0=float32, 1=int8, 3=int32)\n", input->dims->size, input->type);
+    Serial.printf("Output dims: %d, type: %d\n", output->dims->size, output->type);
+    
+    Serial.print("Input shape: [");
+    for (int i = 0; i < input->dims->size; i++) {
+        Serial.print(input->dims->data[i]);
+        if (i < input->dims->size - 1) Serial.print(" x ");
+    }
+    Serial.println("]");
+    
+    Serial.print("Output shape: [");
+    for (int i = 0; i < output->dims->size; i++) {
+        Serial.print(output->dims->data[i]);
+        if (i < output->dims->size - 1) Serial.print(" x ");
+    }
+    Serial.println("]");
+    
+    Serial.printf("Input bytes: %d, Output bytes: %d\n", input->bytes, output->bytes);
+    Serial.println("=========================\n");
 }
 
 void tiny_ml_task(void *pvParameters)
@@ -51,25 +77,48 @@ void tiny_ml_task(void *pvParameters)
 
     while (1)
     {
+        // Normalize input using StandardScaler parameters
+        float temp_normalized = (glob_temperature - TEMP_MEAN) / TEMP_STD;
+        float humid_normalized = (glob_humidity - HUMID_MEAN) / HUMID_STD;
+        
+        // Set normalized values to model input
+        input->data.f[0] = temp_normalized;
+        input->data.f[1] = humid_normalized;
 
-        // Prepare input data (e.g., sensor readings)
-        // For a simple example, let's assume a single float input
-        input->data.f[0] = glob_temperature;
-        input->data.f[1] = glob_humidity;
+        Serial.printf("\n📊 Inference\n");
+        Serial.printf("Input: Temp=%.2f, Humid=%.4f\n", glob_temperature, glob_humidity);
 
         // Run inference
         TfLiteStatus invoke_status = interpreter->Invoke();
         if (invoke_status != kTfLiteOk)
         {
+            Serial.printf("❌ Invoke failed with status: %d\n", invoke_status);
             error_reporter->Report("Invoke failed");
-            return;
+            vTaskDelay(3000);
+            continue;
         }
 
-        // Get and process output
+        // Get output
         float result = output->data.f[0];
-        Serial.print("Inference result: ");
-        Serial.println(result);
-
-        vTaskDelay(5000);
+        Serial.printf("Output[0] (score): %.6f\n", result);
+        
+        // Check for NaN/Inf
+        if (isnan(result)) {
+            Serial.println("⚠️ Output is NaN!");
+        } else if (isinf(result)) {
+            Serial.println("⚠️ Output is Infinity!");
+        } else {
+            Serial.printf("Temperature=%.2f, Humidity=%.2f\n", glob_temperature, glob_humidity);
+            if (result > 0.5)
+            {
+                Serial.println("Result => 🔴 ANOMALY\n");
+            }
+            else
+            {
+                Serial.println("Result => 🟢 NORMAL\n");
+            }
+        }
+        
+        vTaskDelay(3000);
     }
 }
