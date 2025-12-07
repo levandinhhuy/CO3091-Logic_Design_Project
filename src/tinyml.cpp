@@ -113,10 +113,12 @@ void tiny_ml_task(void *pvParameters)
         } else {
             if (result > 0.5)
             {
+                anomaly_detected = true;
                 Serial.println("Result => 🔴 ANOMALY\n");
             }
             else
             {
+                anomaly_detected = false;
                 Serial.println("Result => 🟢 NORMAL\n");
             }
         }
