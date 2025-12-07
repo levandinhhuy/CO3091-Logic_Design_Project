@@ -77,16 +77,19 @@ void tiny_ml_task(void *pvParameters)
 
     while (1)
     {
+        // Convert humidity from 0-100% to 0-1 range
+        float humidity_normalized_range = glob_humidity / 100.0f;
+        
         // Normalize input using StandardScaler parameters
         float temp_normalized = (glob_temperature - TEMP_MEAN) / TEMP_STD;
-        float humid_normalized = (glob_humidity - HUMID_MEAN) / HUMID_STD;
+        float humid_normalized = (humidity_normalized_range - HUMID_MEAN) / HUMID_STD;
         
         // Set normalized values to model input
         input->data.f[0] = temp_normalized;
         input->data.f[1] = humid_normalized;
 
         Serial.printf("\n📊 Inference\n");
-        Serial.printf("Input: Temp=%.2f, Humid=%.4f\n", glob_temperature, glob_humidity);
+        Serial.printf("Temperature=%.2f, Humidity=%.2f\n", glob_temperature, glob_humidity);
 
         // Run inference
         TfLiteStatus invoke_status = interpreter->Invoke();
@@ -108,7 +111,6 @@ void tiny_ml_task(void *pvParameters)
         } else if (isinf(result)) {
             Serial.println("⚠️ Output is Infinity!");
         } else {
-            Serial.printf("Temperature=%.2f, Humidity=%.2f\n", glob_temperature, glob_humidity);
             if (result > 0.5)
             {
                 Serial.println("Result => 🔴 ANOMALY\n");

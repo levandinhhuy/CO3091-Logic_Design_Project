@@ -11,19 +11,18 @@
 #include "task_toogle_boot.h"
 #include "task_wifi.h"
 #include "task_webserver.h"
-#include "task_core_iot.h"
 
 void setup()
 {
   Serial.begin(115200);
   check_info_File(0);
 
-  // xTaskCreate(led_blinky, "Task LED Blink", 2048, NULL, 2, NULL);
-  // xTaskCreate(neo_blinky, "Task NEO Blink", 2048, NULL, 2, NULL);
-  // xTaskCreate(temp_humi_monitor, "Task Temperature and Humidity Monitor", 2048, NULL, 2, NULL);
+  xTaskCreate(led_blinky, "Task LED Blink", 2048, NULL, 2, NULL);
+  xTaskCreate(neo_blinky, "Task NEO Blink", 2048, NULL, 2, NULL);
+  xTaskCreate(temp_humi_monitor, "Task Temperature and Humidity Monitor", 8192, NULL, 2, NULL);  // Increased from 2048 to 8192 (8KB)
   xTaskCreate(tiny_ml_task, "Tiny ML Task", 16384, NULL, 2, NULL);  // Increased from 2048 to 16384 (16KB)
-  // xTaskCreate(coreiot_task, "CoreIOT Task", 4096, NULL, 2, NULL);
-  // xTaskCreate(Task_Toogle_BOOT, "Task_Toogle_BOOT", 4096, NULL, 2, NULL);
+  xTaskCreate(coreiot_task, "CoreIOT Task", 4096, NULL, 2, NULL);
+  xTaskCreate(Task_Toogle_BOOT, "Task_Toogle_BOOT", 4096, NULL, 2, NULL);
 }
 
 void loop()
@@ -37,9 +36,9 @@ void loop()
     else
     {
       // CORE_IOT_reconnect();
-      Serial.println("WiFi connected");
-      Serial.print("IP address: ");
-      Serial.println(WiFi.localIP());
+      // Serial.println("WiFi connected");
+      // Serial.print("IP address: ");
+      // Serial.println(WiFi.localIP());
     }
   }
   Webserver_reconnect();
