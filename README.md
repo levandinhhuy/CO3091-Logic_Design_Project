@@ -12,7 +12,6 @@ Real-time environmental monitoring system using ESP32-S3 with **TensorFlow Lite 
 - **Sensor**: DHT20 (Temperature & Humidity) - I2C pins 11, 12
 - **Display**: 
   - LCD 16x2 (I2C: 0x27)
-  - OLED 128x64 (I2C: SH1106)
 - **Indicators**:
   - Red LED (GPIO 21) - WiFi/Status
   - NeoPixel RGB LED (GPIO 16) - Anomaly/Status
@@ -42,7 +41,7 @@ Real-time environmental monitoring system using ESP32-S3 with **TensorFlow Lite 
 ### ✅ Smart Indicators
 - LED blinking based on WiFi status
 - NeoPixel color/animation based on anomaly detection
-- LCD + OLED display with sensor data and status
+- LCD display with sensor data and status
 
 ---
 
@@ -113,10 +112,6 @@ if (anomaly_detected) {
 LCD:
 Temp: 28.50
 Humi: 65.36
-
-OLED:
-Temp: 28.50 C
-Humi: 65.36 %
 Status: NORMAL
 ```
 
