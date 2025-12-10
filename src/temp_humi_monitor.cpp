@@ -74,10 +74,18 @@ void temp_humi_monitor(void *pvParameters){
 }
 void draw(){
     u8g2.setFont(u8g2_font_ncenB08_tr);       // choose a suitable font
+    
     char temp_str[20];
+    
+    // Display temperature and humidity
     sprintf(temp_str, "Temp: %.2f C", glob_temperature);
     u8g2.drawStr(0,10,temp_str);
+    
     char humi_str[20];
     sprintf(humi_str, "Humi: %.2f %%", glob_humidity);
     u8g2.drawStr(0,30,humi_str);
+    
+    // Display anomaly detection result
+    const char* status_str = anomaly_detected ? "Status: ANOMALY" : "Status: NORMAL";
+    u8g2.drawStr(0,50,status_str);
 }
