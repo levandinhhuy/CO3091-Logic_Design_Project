@@ -1,8 +1,7 @@
 #include "coreiot.h"
 
 // ----------- CONFIGURE THESE! -----------
-// const char* coreIOT_Server = "app.coreiot.io";  
-// const char* coreIOT_Token = "g7drm1amhd3dchr379xu";   // Device Access Token
+#define FAN_GPIO 25
 const int   mqttPort = 1883;
 // ----------------------------------------
 
@@ -56,19 +55,16 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   const char* method = doc["method"];
-  if (strcmp(method, "setStateLED") == 0) {
-    // Check params type (could be boolean, int, or string according to your RPC)
-    // Example: {"method": "setValueLED", "params": "ON"}
-    const char* params = doc["params"];
+  if (strcmp(method, "turnOnFan") == 0) {
+    int params = doc["params"]["state"];
 
-    if (strcmp(params, "ON") == 0) {
-      Serial.println("Device turned ON.");
-      //TODO
+    if (params == 1) {
+      Serial.println("Fan turned ON.");
+      digitalWrite(FAN_GPIO, HIGH);
 
     } else {   
-      Serial.println("Device turned OFF.");
-      //TODO
-
+      Serial.println("Fan turned OFF.");
+      digitalWrite(FAN_GPIO, LOW);
     }
   } else {
     Serial.print("Unknown method: ");
@@ -79,21 +75,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void setup_coreiot(){
 
-  //Serial.print("Connecting to WiFi...");
-  //WiFi.begin(wifi_ssid, wifi_password);
-  //while (WiFi.status() != WL_CONNECTED) {
-  
-  // while (isWifiConnected == false) {
-  //   delay(500);
-  //   Serial.print(".");
-  // }
-
   while(1){
     if (xSemaphoreTake(xBinarySemaphoreInternet, portMAX_DELAY) == pdTRUE) {
-      Serial.print("[COREIOT] Connecting to WiFi...");
       break;
     } else {
-      Serial.println("[COREIOT] Failed to take semaphore for WiFi connection.");
+      Serial.println("[COREIOT] Failed WiFi connection.");
     }
     delay(500);
     Serial.print(".");
@@ -118,8 +104,10 @@ void coreiot_task(void *pvParameters){
         }
         client.loop();
 
+        sensorData* pxdata;
+        xQueueReceive( xQueueSensorData, &pxdata, portMAX_DELAY );
         // Sample payload, publish to 'v1/devices/me/telemetry'
-        String payload = "{\"temperature\":" + String(glob_temperature) +  ",\"humidity\":" + String(glob_humidity) + "}";
+        String payload = "{\"temperature\":" + String(pxdata->temperature) +  ",\"humidity\":" + String(pxdata->humidity) + ",\"anomaly\":" + String (pxdata->anomaly) + "}";
         
         client.publish("v1/devices/me/telemetry", payload.c_str());
 

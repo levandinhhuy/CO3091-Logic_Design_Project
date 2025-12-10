@@ -78,24 +78,27 @@ void tiny_ml_task(void *pvParameters)
     while (1)
     {
         // Convert humidity from 0-100% to 0-1 range
-        float humidity_normalized_range = glob_humidity / 100.0f;
+        sensorData* pxdata;
+        xQueueReceive( xQueueSensorData, &pxdata, portMAX_DELAY );
+
+        float humidity_normalized_range = pxdata->humidity / 100.0f;
         
         // Normalize input using StandardScaler parameters
-        float temp_normalized = (glob_temperature - TEMP_MEAN) / TEMP_STD;
+        float temp_normalized = (pxdata->temperature - TEMP_MEAN) / TEMP_STD;
         float humid_normalized = (humidity_normalized_range - HUMID_MEAN) / HUMID_STD;
         
         // Set normalized values to model input
         input->data.f[0] = temp_normalized;
         input->data.f[1] = humid_normalized;
 
-        Serial.printf("\n📊 Inference\n");
-        Serial.printf("Temperature=%.2f, Humidity=%.2f\n", glob_temperature, glob_humidity);
+        Serial.printf("\nInference\n");
+        Serial.printf("Temperature=%.2f, Humidity=%.2f\n", pxdata->temperature, pxdata->humidity);
 
         // Run inference
         TfLiteStatus invoke_status = interpreter->Invoke();
         if (invoke_status != kTfLiteOk)
         {
-            Serial.printf("❌ Invoke failed with status: %d\n", invoke_status);
+            Serial.printf("Invoke failed with status: %d\n", invoke_status);
             error_reporter->Report("Invoke failed");
             vTaskDelay(3000);
             continue;
@@ -107,20 +110,22 @@ void tiny_ml_task(void *pvParameters)
         
         // Check for NaN/Inf
         if (isnan(result)) {
-            Serial.println("⚠️ Output is NaN!");
+            Serial.println("Output is NaN!");
         } else if (isinf(result)) {
-            Serial.println("⚠️ Output is Infinity!");
+            Serial.println("Output is Infinity!");
         } else {
             if (result > 0.5)
             {
-                Serial.println("Result => 🔴 ANOMALY\n");
+                Serial.println("Result => ANOMALY\n");
             }
             else
             {
-                Serial.println("Result => 🟢 NORMAL\n");
+                Serial.println("Result => NORMAL\n");
             }
         }
         
+        pxdata->anomaly = (result > 0.5) ? 1 : 0;
+        xQueueSend( xQueueAnomalyResult, (void *) &pxdata, (TickType_t) 0 );
         vTaskDelay(3000);
     }
 }
