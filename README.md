@@ -13,8 +13,8 @@ Real-time environmental monitoring system using ESP32-S3 with **TensorFlow Lite 
 - **Display**: 
   - LCD 16x2 (I2C: 0x27)
 - **Indicators**:
-  - Red LED (GPIO 21) - WiFi/Status
-  - NeoPixel RGB LED (GPIO 16) - Anomaly/Status
+  - LED (GPIO 48) - WiFi status
+  - NeoPixel RGB LED (GPIO 45) - Anomaly/Status
 - **Connectivity**: WiFi + MQTT (ThingsBoard)
 
 ---
@@ -22,7 +22,7 @@ Real-time environmental monitoring system using ESP32-S3 with **TensorFlow Lite 
 ## 🎯 Core Features
 
 ### ✅ Multi-tasking System (FreeRTOS)
-- 5 concurrent tasks running in parallel
+- 6 concurrent tasks running in parallel
 - Optimized stack allocation for each task
 - Semaphore-based synchronization for critical sections
 
@@ -48,40 +48,41 @@ Real-time environmental monitoring system using ESP32-S3 with **TensorFlow Lite 
 ## 📊 Task Description
 
 ### **Task 1: led_blinky** (`src/led_blinky.cpp`)
-**Purpose**: Indicate WiFi connection status using red LED
+**Purpose**: Indicate WiFi connection status using LED
 
 | Aspect | Details |
 |--------|---------|
 | **Frequency** | Continuous blinking |
-| **Logic** | Fast blink (300ms) = WiFi disconnected<br>Slow blink (1000ms) = WiFi connected |
+| **Logic** | Fast blink (200ms) = WiFi disconnected<br>Slow blink (2000ms) = WiFi connected |
 | **Stack Size** | 2048 bytes |
 | **Priority** | 2 (Normal) |
 | **Dependencies** | `isWifiConnected` (global flag) |
-| **Output** | GPIO 21 (Red LED) |
+| **Output** | GPIO 48 (LED) |
 
 **Code Flow**:
 ```cpp
 if (!isWifiConnected) {
-    // Fast blink 300ms on/off
+    // Fast blink 200ms on/off
 } else {
-    // Slow blink 1000ms on/off
+    // Slow blink 2000ms on/off
 }
 ```
 
 ---
 
 ### **Task 2: neo_blinky** (`src/neo_blinky.cpp`)
-**Purpose**: Display anomaly detection status using NeoPixel RGB LED
+**Purpose**: Display anomaly detection status using NeoPixel RGB LED with power-aware brightness
 
 | Aspect | Details |
 |--------|---------|
 | **Frequency** | Continuous animation |
-| **Logic** | ANOMALY (true):<br>&nbsp;&nbsp;- Red color<br>&nbsp;&nbsp;- Fast blink (200ms on/off)<br>NORMAL (false):<br>&nbsp;&nbsp;- Green color<br>&nbsp;&nbsp;- Slow blink (2000ms on/off) |
+| **LED Pin** | GPIO 45 |
+| **Logic** | ANOMALY (true):<br>&nbsp;&nbsp;- Red color (255, 0, 0)<br>&nbsp;&nbsp;- Fast blink (200ms on/off)<br>NORMAL (false):<br>&nbsp;&nbsp;- Green color (0, 255, 0)<br>&nbsp;&nbsp;- Slow blink (2000ms on/off) |
+| **Brightness Control** | 100% (255) in POWER_NORMAL mode<br>50% (50) in POWER_OPTIMIZE mode |
 | **Stack Size** | 2048 bytes |
 | **Priority** | 2 (Normal) |
-| **Dependencies** | `anomaly_detected` (from tiny_ml_task) |
-| **Output** | GPIO 16 (NeoPixel) |
-| **Features** | - Color-coded status<br>- Speed indicates severity |
+| **Dependencies** | `anomaly_detected` (from tiny_ml_task)<br>`current_power_state` (from task_power_optimize) |
+| **Synchronization** | `xBinarySemaphorePowerOptimize` (dim LED)<br>`xBinarySemaphoreNormalMode` (full brightness) |
 
 **Code Flow**:
 ```cpp
@@ -90,12 +91,13 @@ if (anomaly_detected) {
 } else {
     // Green + 2000ms blink (normal)
 }
+// Brightness adjusted by power management task
 ```
 
 ---
 
 ### **Task 3: temp_humi_monitor** (`src/temp_humi_monitor.cpp`)
-**Purpose**: Read DHT20 sensor and update global variables; display on LCD/OLED
+**Purpose**: Read DHT20 sensor and update global variables; display on LCD
 
 | Aspect | Details |
 |--------|---------|
@@ -104,20 +106,18 @@ if (anomaly_detected) {
 | **Sensors** | Temperature (°C)<br>Humidity (%) |
 | **Stack Size** | 8192 bytes |
 | **Priority** | 2 (Normal) |
-| **Dependencies** | DHT20, LiquidCrystal_I2C, U8G2 |
-| **Output** | LCD 16x2 (0x27)<br>OLED 128x64 (SH1106)<br>Global variables |
+| **Dependencies** | DHT20, LiquidCrystal_I2C |
+| **Output** | LCD 16x2 (0x27)<br>Global variables |
 
 **Display Output**:
 ```
-LCD:
-Temp: 28.50
-Humi: 65.36
-Status: NORMAL
+LCD Hàng 1: T:28.5 H:65.4
+LCD Hàng 2: Status: NORMAL
 ```
 
 **Global Variables Updated**:
-- `glob_temperature` - Current temperature
-- `glob_humidity` - Current humidity
+- `glob_temperature` - Current temperature (°C)
+- `glob_humidity` - Current humidity (%)
 - Used by `tiny_ml_task` for inference
 
 ---
@@ -291,24 +291,22 @@ NORMAL (100%) ↔ OPTIMIZE (50% reduced)
 | Pin | Device | Function |
 |-----|--------|----------|
 | **GPIO 11, 12** | DHT20 (I2C SDA/SCL) | Temperature/Humidity sensor |
-| **GPIO 21** | Red LED | WiFi status indicator |
-| **GPIO 16** | NeoPixel | Anomaly status indicator |
-| **GPIO 5** | Boot button | System control |
-| **I2C 0x27** | LCD 16x2 | Display |
-| **I2C (other)** | OLED SH1106 | Display |
+| **GPIO 48** | LED | WiFi status indicator |
+| **GPIO 45** | NeoPixel | Anomaly status indicator (power-aware) |
+| **GPIO 0** | Boot button | Power mode toggle (hold > 1s) |
+| **I2C 0x27** | LCD 16x2 | Display (I2C address) |
 
 ---
 
 ## 📚 Libraries Used
 
-- **TensorFlow Lite Micro** - ML inference
-- **DHT20** - Temperature/humidity sensor
+- **TensorFlow Lite Micro** - ML inference (on-device)
+- **DHT20** - Temperature/humidity sensor driver
 - **AsyncWebServer** - Web interface
 - **ArduinoJson** - JSON serialization
 - **PubSubClient** - MQTT client
-- **LiquidCrystal_I2C** - LCD control
-- **U8G2** - OLED control
-- **Adafruit_NeoPixel** - RGB LED control
+- **LiquidCrystal_I2C** - LCD 16x2 control
+- **Adafruit_NeoPixel** - RGB LED (WS2812B) control
 
 ---
 
@@ -326,14 +324,19 @@ NORMAL (100%) ↔ OPTIMIZE (50% reduced)
 
 ## 📝 Notes
 
-- **Multi-threading**: Tasks run with FreeRTOS, 6 tasks total (4KB-16KB stack each)
-- **Semaphore Sync**: 3 semaphores for WiFi, Power Optimize, and Normal mode coordination
-- **ML Inference**: TFLite Micro on-device (~50-100ms/run), no server dependency
-- **Data Normalization**: StandardScaler applied in real-time before inference
-- **Power Management**: 3 modes (100% → 50% → 10% power) controlled via BOOT button
-- **Web Updates**: Dashboard refreshes every 3 seconds
-- **GPIO Wakeup**: Light sleep can be triggered by GPIO7 (anomaly detection)
-- **Brightness Control**: NeoPixel dims to 50% in POWER_OPTIMIZE mode via semaphore
+- **Multi-tasking**: 6 FreeRTOS tasks running in parallel (2KB-16KB stack each)
+- **Synchronization**: 3 semaphores for WiFi, Power Optimize, and Normal mode coordination
+- **ML Inference**: TFLite Micro on-device (~50-100ms/run), binary classification (NORMAL/ANOMALY)
+- **Data Normalization**: StandardScaler applied real-time before inference
+  - Temperature: mean=29.95°C, std=10.02
+  - Humidity: mean=0.6234, std=0.1447
+- **Power Management**: 2 modes (100% NORMAL ↔ 50% OPTIMIZE) controlled via BOOT button (GPIO 0)
+- **Sensor Cycle**: DHT20 read every ~4 seconds, TinyML inference every 3 seconds
+- **Display**: LCD 16x2 shows "T:XX.X H:XX.X" + "Status: ANOMALY/NORMAL"
+- **LED Indicators**:
+  - LED (GPIO 48): WiFi status (200ms fast = disconnected, 2000ms slow = connected)
+  - NeoPixel (GPIO 45): Anomaly status with power-aware brightness
+- **MQTT**: ThingsBoard integration every 4 seconds with temperature, humidity, anomaly, RSSI
 
 ---
 

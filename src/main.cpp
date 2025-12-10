@@ -38,9 +38,9 @@ void loop()
     else
     {
       // CORE_IOT_reconnect();
-      Serial.println("WiFi connected");
-      Serial.print("IP address: ");
-      Serial.println(WiFi.localIP());
+      // Serial.println("WiFi connected");
+      // Serial.print("IP address: ");
+      // Serial.println(WiFi.localIP());
     }
   }
   Webserver_reconnect();
