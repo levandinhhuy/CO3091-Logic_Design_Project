@@ -1,5 +1,6 @@
 #include "neo_blinky.h"
 #include "global.h"
+#include "task_power_optimize.h"
 
 
 void neo_blinky(void *pvParameters){
@@ -11,6 +12,18 @@ void neo_blinky(void *pvParameters){
     strip.show();
 
     while(1) {
+        // Handle power state changes
+        if (xSemaphoreTake(xBinarySemaphorePowerOptimize, 0) == pdTRUE) {
+            // Entering POWER_OPTIMIZE: Dim the LED
+            strip.setBrightness(50);  // 50% brightness
+        }
+        
+        if (xSemaphoreTake(xBinarySemaphoreNormalMode, 0) == pdTRUE) {
+            // Entering NORMAL: Full brightness
+            strip.setBrightness(255);
+        }
+
+        // Display based on anomaly status
         uint16_t delay_ms;
         
         if (anomaly_detected) {

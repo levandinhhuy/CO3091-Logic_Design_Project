@@ -11,6 +11,7 @@
 #include "task_toogle_boot.h"
 #include "task_wifi.h"
 #include "task_webserver.h"
+#include "task_power_optimize.h"
 
 void setup()
 {
@@ -23,6 +24,7 @@ void setup()
   xTaskCreate(tiny_ml_task, "Tiny ML Task", 16384, NULL, 2, NULL);  
   xTaskCreate(coreiot_task, "CoreIOT Task", 4096, NULL, 2, NULL);
   xTaskCreate(Task_Toogle_BOOT, "Task_Toogle_BOOT", 4096, NULL, 2, NULL);
+  xTaskCreate(task_power_optimize, "Power Optimize Task", 3072, NULL, 2, NULL);
 }
 
 void loop()

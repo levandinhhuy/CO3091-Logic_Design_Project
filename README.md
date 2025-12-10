@@ -198,24 +198,61 @@ HUMID_MEAN = 0.6234,    HUMID_STD = 0.1447
 
 ---
 
-## 📈 Task Execution Timeline
+### **Task 6: task_power_optimize** (`src/task_power_optimize.cpp`)
+**Purpose**: Manage power consumption using BOOT button (2 modes: Normal & Optimize)
+
+| Aspect | Details |
+|--------|--------|
+| **Frequency** | Continuous monitoring (100ms polling) |
+| **Modes** | 1. POWER_NORMAL - All tasks active, full brightness (80-100mA)<br>2. POWER_OPTIMIZE - Reduced load, dimmed displays (40-50mA) |
+| **Input Control** | BOOT button (GPIO 0) - Hold > 1s to toggle between modes |
+| **Stack Size** | 3072 bytes |
+| **Priority** | 2 (Normal) |
+| **Dependencies** | `anomaly_detected` (from tiny_ml_task) |
+| **Output** | `current_power_state` (enum), Semaphores |
+| **Synchronization** | `xBinarySemaphorePowerOptimize` (enter optimize mode)<br>`xBinarySemaphoreNormalMode` (return to normal) |
+
+**Power Mode Transitions**:
 
 ```
-Time(s) | led_blinky | neo_blinky | temp_humi | tiny_ml | coreiot
---------|-----------|-----------|----------|---------|----------
-  0     | Blink     | Animate   | Read DHT | Setup   | -
-  1     | Blink     | Animate   | Display  | -       | -
-  3     | Blink     | Animate   | -        | Infer   | -
-  4     | Blink     | Animate   | Read DHT | -       | -
-  6     | Blink     | Animate   | Display  | Infer   | -
-  7     | Blink     | Animate   | -        | -       | -
-  10    | Blink     | Animate   | Read DHT | Infer   | Send MQTT
-  ...   | Repeat    | Repeat    | Repeat   | Repeat  | Repeat
+POWER_NORMAL (100% load)
+    ↓ (Hold BOOT > 1s)
+POWER_OPTIMIZE (50% reduced)
+    ↓ (Hold BOOT > 1s again)
+POWER_NORMAL
+```
+
+**Features**:
+- ✅ Manual mode switching via BOOT button (Hold > 1s)
+- ✅ Semaphore signals to other tasks (neo_blinky reduces brightness to 50%)
+- ✅ Auto-timeout protection (bootHandled flag prevents accidental switching)
+- ✅ Real-time power state logging every 10 seconds
+- ✅ WiFi stays active in both modes (always connected to server)
+
+**GPIO Configuration**:
+- **GPIO 0 (BOOT)**: Manual mode switch - Hold > 1s to toggle between NORMAL ↔ OPTIMIZE
+
+---
+
+## 📈 Task Execution Timeline (with Power Management)
+
+```
+Time(s) | led_blinky | neo_blinky | temp_humi | tiny_ml | coreiot | power_opt
+--------|-----------|-----------|----------|---------|---------|----------
+  0     | Blink     | 100% LED  | Read DHT | Setup   | -       | Monitor
+  1     | Blink     | 100% LED  | Display  | -       | -       | Check BOOT
+  3     | Blink     | 100% LED  | -        | Infer   | -       | Check BOOT
+  4     | Blink     | 100% LED  | Read DHT | -       | -       | Check BOOT
+  5     | Blink     | 50% DIM↓  | Display  | -       | -       | [User holds BOOT]
+  6     | Blink     | 50% DIM↓  | -        | Infer   | -       | → POWER_OPTIMIZE
+  7     | Blink     | 50% DIM↓  | -        | -       | -       | Check BOOT
+  10    | Blink     | 50% DIM↓  | Read DHT | Infer   | Send    | Log state
+  ...   | Repeat    | Repeat    | Repeat   | Repeat  | Repeat  | Repeat
 ```
 
 ---
 
-## 🏗️ Architecture Diagram
+## 🏗️ Architecture Diagram (with Power Management)
 
 ```
 DHT20 Sensor (I2C)
@@ -229,11 +266,22 @@ tiny_ml_task (3s cycle)
       ├→ Run TFLite inference
       └→ anomaly_detected (boolean)
       ↓
-dual output:
-├→ neo_blinky (Real-time LED status)
-├→ led_blinky (WiFi indicator)
+POWER MANAGEMENT LAYER:
+┌──────────────────────────────────┐
+│ task_power_optimize (100ms)      │
+│ - Monitor BOOT button (GPIO0)    │
+│ - Manage 2 power modes           │
+│ - Signal via semaphores          │
+└──────────────────────────────────┘
+      ↓ (Semaphore signals)
+Output tasks:
+├→ neo_blinky (LED: 100% or 50% brightness)
+├→ led_blinky (WiFi status indicator)
 ├→ temp_humi_monitor (LCD/OLED display)
 └→ coreiot_task (MQTT → ThingsBoard)
+
+Power States:
+NORMAL (100%) ↔ OPTIMIZE (50% reduced)
 ```
 
 ---
@@ -278,8 +326,26 @@ dual output:
 
 ## 📝 Notes
 
-- Tasks run with FreeRTOS multi-threading
-- Semaphore synchronizes WiFi-dependent tasks
-- ML inference runs on-device (~50-100ms/run)
-- All sensor data is normalized before inference
-- Web interface updates every 3 seconds
+- **Multi-threading**: Tasks run with FreeRTOS, 6 tasks total (4KB-16KB stack each)
+- **Semaphore Sync**: 3 semaphores for WiFi, Power Optimize, and Normal mode coordination
+- **ML Inference**: TFLite Micro on-device (~50-100ms/run), no server dependency
+- **Data Normalization**: StandardScaler applied in real-time before inference
+- **Power Management**: 3 modes (100% → 50% → 10% power) controlled via BOOT button
+- **Web Updates**: Dashboard refreshes every 3 seconds
+- **GPIO Wakeup**: Light sleep can be triggered by GPIO7 (anomaly detection)
+- **Brightness Control**: NeoPixel dims to 50% in POWER_OPTIMIZE mode via semaphore
+
+---
+
+## 🎯 Power Management Quick Reference
+
+| Mode | Load | Display | WiFi | Indicator | Use Case |
+|------|------|---------|------|-----------|----------|
+| **NORMAL** | 100% | Full bright | Active | 100% LED | Full operation |
+| **POWER_OPTIMIZE** | 50% | Dimmed (50%) | Active | 50% LED | Night/Low activity |
+
+**Activation**: Hold BOOT button (GPIO0) for > 1 second to toggle between NORMAL ↔ POWER_OPTIMIZE
+
+**Power Consumption**:
+- NORMAL: 80-100mA (with WiFi, MQTT, full display)
+- POWER_OPTIMIZE: 40-50mA (WiFi/MQTT stay on, display dimmed 50%)
