@@ -15,6 +15,9 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect (username=token, password=empty)
+    Serial.println(CORE_IOT_TOKEN.c_str());
+    Serial.println(CORE_IOT_SERVER.c_str());
+    Serial.println(mqttPort);
     if (client.connect("ESP32Client", CORE_IOT_TOKEN.c_str(), NULL)) {    //fix hard code
       Serial.println("connected to CoreIOT Server!");
       client.subscribe("v1/devices/me/rpc/request/+");
@@ -86,15 +89,18 @@ void setup_coreiot(){
   // }
 
   while(1){
-    if (xSemaphoreTake(xBinarySemaphoreInternet, portMAX_DELAY)) {
+    if (xSemaphoreTake(xBinarySemaphoreInternet, portMAX_DELAY) == pdTRUE) {
+      Serial.print("[COREIOT] Connecting to WiFi...");
       break;
+    } else {
+      Serial.println("[COREIOT] Failed to take semaphore for WiFi connection.");
     }
     delay(500);
     Serial.print(".");
   }
 
 
-  Serial.println(" Connected!");
+  Serial.println(" -------------------------Connected!");
 
   client.setServer(CORE_IOT_SERVER.c_str(), mqttPort);    //fix hard code
   client.setCallback(callback);
@@ -102,7 +108,7 @@ void setup_coreiot(){
 }
 
 void coreiot_task(void *pvParameters){
-
+    Serial.println("[COREIOT] Starting CoreIOT task...");
     setup_coreiot();
 
     while(1){

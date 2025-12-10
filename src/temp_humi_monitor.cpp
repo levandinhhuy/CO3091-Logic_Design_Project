@@ -4,16 +4,16 @@ DHT20 dht20;
 LiquidCrystal_I2C lcd(0x27,16,2);
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-// #define LIGHT_ANALOG_PIN 1 //A0
+#define LIGHT_ANALOG_PIN 1 //A0
 
 void temp_humi_monitor(void *pvParameters){
 
     Wire.begin(11, 12);
     // Serial.begin(115200);
     dht20.begin();
-    u8g2.begin();
-    lcd.begin();
-    lcd.backlight();
+    // u8g2.begin();
+    // lcd.begin();
+    // lcd.backlight();
     
     while (1){
         /* code */
@@ -31,32 +31,40 @@ void temp_humi_monitor(void *pvParameters){
             //return;
         }
 
+        // Determine light level
+        // String lightLevel;
+        // if(lightValue <= 1200) lightLevel = "Bright";
+        // else if(lightValue <= 3200) lightLevel = "Medium";
+        // else lightLevel = "Dark";
+
         //Update global variables for temperature and humidity and light level
         glob_temperature = temperature;
         glob_humidity = humidity;
+        
 
-        // LCD display        
+        // LCD display
+        
         Serial.print("Humidity: ");
         Serial.print(humidity);
         Serial.print("%  Temperature: ");
         Serial.print(temperature);
         Serial.println("°C");
 
-        lcd.setCursor(0,0);
-        lcd.print("Temp: ");
-        lcd.setCursor(6,0);
-        lcd.print(temperature);
+        // lcd.setCursor(0,0);
+        // lcd.print("Temp: ");
+        // lcd.setCursor(6,0);
+        // lcd.print(temperature);
 
-        lcd.setCursor(0,1);
-        lcd.print("Humi: ");
-        lcd.setCursor(6,1);
-        lcd.print(humidity);
+        // lcd.setCursor(0,1);
+        // lcd.print("Humi: ");
+        // lcd.setCursor(6,1);
+        // lcd.print(humidity);
 
         // OLED display
-        u8g2.clearBuffer();					// clear the internal memory
-        draw();
-        u8g2.sendBuffer();					// transfer internal memory to the display
-        vTaskDelay(1000);
+        // u8g2.clearBuffer();					// clear the internal memory
+        // draw();
+        // u8g2.sendBuffer();					// transfer internal memory to the display
+        // vTaskDelay(1000);
         
         // ==================================================
         StaticJsonDocument<128> doc;
@@ -79,5 +87,4 @@ void draw(){
     u8g2.drawStr(0,10,temp_str);
     char humi_str[20];
     sprintf(humi_str, "Humi: %.2f %%", glob_humidity);
-    u8g2.drawStr(0,30,humi_str);
 }
