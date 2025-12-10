@@ -3,9 +3,6 @@ DHT20 dht20;
 // Set the LCD I2C address to 0x27 for a 16 column and 2 row.
 LiquidCrystal_I2C lcd(0x27,16,2);
 
-U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-#define LIGHT_ANALOG_PIN 1 //A0
-
 void temp_humi_monitor(void *pvParameters){
 
     Wire.begin(11, 12);
@@ -35,16 +32,26 @@ void temp_humi_monitor(void *pvParameters){
         Serial.print(temperature);
         Serial.println("°C");
 
-        lcd.setCursor(0,0);
-        lcd.print("Temp: ");
-        lcd.setCursor(6,0);
-        lcd.print(temperature);
+        // Hàng 1: Temp + Humi
+        lcd.setCursor(0, 0);
+        char line1[17];
+        sprintf(line1, "T:%.1f H:%.1f", temperature, humidity);
+        lcd.print(line1);
 
-        lcd.setCursor(0,1);
-        lcd.print("Humi: ");
-        lcd.setCursor(6,1);
-        lcd.print(humidity);
+        // Hàng 2: Status
+        lcd.setCursor(0, 1);
+        lcd.print("Status: ");
+        if (anomaly_detected) {
+            lcd.print("ANOMALY ");
+        } else {
+            lcd.print("NORMAL  ");
+        }
 
+
+
+        vTaskDelay(1000);
+        
+        // ==================================================
         StaticJsonDocument<128> doc;
         doc["type"] = "sensor_data";
         doc["temperature"] = temperature;

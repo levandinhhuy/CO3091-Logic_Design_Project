@@ -13,6 +13,8 @@ struct sensorData {
 };
 
 extern sensorData xData;
+extern bool anomaly_detected;
+
 extern String WIFI_SSID;
 extern String WIFI_PASS;
 extern String CORE_IOT_TOKEN;
@@ -23,4 +25,6 @@ extern boolean isWifiConnected;
 extern SemaphoreHandle_t xBinarySemaphoreInternet;
 extern QueueHandle_t xQueueSensorData;
 extern QueueHandle_t xQueueAnomalyResult;
+extern SemaphoreHandle_t xBinarySemaphorePowerOptimize;
+extern SemaphoreHandle_t xBinarySemaphoreNormalMode;
 #endif
