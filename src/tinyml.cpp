@@ -79,7 +79,14 @@ void tiny_ml_task(void *pvParameters)
     {
         // Convert humidity from 0-100% to 0-1 range
         sensorData* pxdata;
-        xQueueReceive( xQueueSensorData, &pxdata, portMAX_DELAY );
+        Serial.printf("TinyML waiting for sensor data...\n");
+        if (xQueueReceive( xQueueSensorData, &pxdata, portMAX_DELAY) == pdPASS) {
+            Serial.printf("Queue Sensor receive: %p\n", pxdata);
+        } else {
+            Serial.println("Failed to receive from sensor data queue.");
+            vTaskDelay(1000);
+            continue;
+        }
 
         float humidity_normalized_range = pxdata->humidity / 100.0f;
         
@@ -125,6 +132,7 @@ void tiny_ml_task(void *pvParameters)
         }
         
         pxdata->anomaly = (result > 0.5) ? 1 : 0;
+        Serial.printf("Queue anomaly send: %p\n", pxdata);
         xQueueSend( xQueueAnomalyResult, (void *) &pxdata, (TickType_t) 0 );
         vTaskDelay(3000);
     }

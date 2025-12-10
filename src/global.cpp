@@ -8,5 +8,7 @@ String CORE_IOT_PORT;
 boolean isWifiConnected = false;
 SemaphoreHandle_t xBinarySemaphoreInternet = xSemaphoreCreateBinary();
 
-QueueHandle_t xQueueSensorData = xQueueCreate(10, sizeof(&xData));
-QueueHandle_t xQueueAnomalyResult = xQueueCreate(10, sizeof(&xData));
+sensorData xData;
+
+QueueHandle_t xQueueSensorData = xQueueCreate(1, sizeof(sensorData*));
+QueueHandle_t xQueueAnomalyResult = xQueueCreate(1, sizeof(sensorData*));

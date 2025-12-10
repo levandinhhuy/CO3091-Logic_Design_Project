@@ -105,13 +105,17 @@ void coreiot_task(void *pvParameters){
         client.loop();
 
         sensorData* pxdata;
-        xQueueReceive( xQueueSensorData, &pxdata, portMAX_DELAY );
-        // Sample payload, publish to 'v1/devices/me/telemetry'
-        String payload = "{\"temperature\":" + String(pxdata->temperature) +  ",\"humidity\":" + String(pxdata->humidity) + ",\"anomaly\":" + String (pxdata->anomaly) + "}";
+        if (xQueueReceive(xQueueAnomalyResult, &pxdata, portMAX_DELAY) == pdPASS) {
+          String payload = "{\"temperature\":" + String(pxdata->temperature) +  ",\"humidity\":" + String(pxdata->humidity) + ",\"anomaly\":" + String (pxdata ->anomaly) + "}";
         
-        client.publish("v1/devices/me/telemetry", payload.c_str());
+          client.publish("v1/devices/me/telemetry", payload.c_str());
 
-        Serial.println("Published payload: " + payload);
-        vTaskDelay(10000);  // Publish every 10 seconds
+            Serial.println("Published payload: " + payload);
+        } else {
+            Serial.println("Failed to receive from anomaly result queue.");
+            vTaskDelay(1000);
+            continue;
+        }
+        vTaskDelay(5000);  // Publish every 5 seconds
     }
 }

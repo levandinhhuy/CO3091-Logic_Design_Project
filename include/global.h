@@ -6,12 +6,13 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "freertos/queue.h"
-static struct sensorData {
+struct sensorData {
     float temperature;
     float humidity;
     int anomaly;
-} xData;
+};
 
+extern sensorData xData;
 extern String WIFI_SSID;
 extern String WIFI_PASS;
 extern String CORE_IOT_TOKEN;

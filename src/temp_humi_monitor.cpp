@@ -26,7 +26,7 @@ void temp_humi_monitor(void *pvParameters){
 
         pxdata->temperature = temperature;
         pxdata->humidity = humidity;
-        xQueueSend( xQueueSensorData, (void *) &pxdata, (TickType_t) 0 );
+        xQueueSend(xQueueSensorData, (void *) &pxdata, (TickType_t) 0 );
         // LCD display
         
         Serial.print("Humidity: ");
